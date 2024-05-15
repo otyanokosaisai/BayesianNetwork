@@ -1,0 +1,3 @@
+method: "bic"
+data_path: "data/alarm.csv"
+compare_network_path: "data/alarm.dot"

@@ -1,0 +1,3 @@
+method: "bic"
+data_path: "data/asia.csv"
+compare_network_path: "data/asia.dot"
