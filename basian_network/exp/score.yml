@@ -1,0 +1,18 @@
+method: "bdeu"
+bdeu_ess: 1.0
+data_dir: "data"
+compare_network_dir: "data"
+data_names: [
+  "asia",
+  "sachs",
+  "child",
+  "insurance",
+  "water",
+  "alarm",
+  "hailfinder",
+  "hepar2",
+  "win95pts",
+  "pathfinder",
+  "andes",
+]
+timeout_hours: 24

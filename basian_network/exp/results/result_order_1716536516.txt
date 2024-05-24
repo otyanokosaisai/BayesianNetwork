@@ -1,0 +1,44 @@
+Experiment for asia completed successfully.
+learn duration: 16.124684ms
+visualize duration: 112.974µs
+evaluate duration: 799.817µs
+[Aic] optimized_score: -22634.208874780776, ans_score: -22373.051689152264
+[Bic] optimized_score: -22691.878787505648, ans_score: -22437.930340967752
+[BDeu(10000.0)] optimized_score: -39670.85599357412, ans_score: -38536.2857406302
+[hamming_distance]: 5
+compare duration: 4.157046ms
+cpdag visualize duration: 1.74987ms
+
+Experiment for sachs completed successfully.
+learn duration: 166.855637ms
+visualize duration: 130.052µs
+evaluate duration: 26.827129ms
+[Aic] optimized_score: -71898.54696933295, ans_score: -71682.89740532817
+[Bic] optimized_score: -73188.911266552, ans_score: -72324.47518439239
+[BDeu(10000.0)] optimized_score: -92346.84854882014, ans_score: -93823.32177894836
+[hamming_distance]: 10
+compare duration: 147.708763ms
+cpdag visualize duration: 139.215µs
+
+Experiment for child completed successfully.
+learn duration: 10.747677777s
+visualize duration: 127.929µs
+evaluate duration: 198.153755ms
+[Aic] optimized_score: -123805.73693493096, ans_score: -121678.1212266044
+[Bic] optimized_score: -126516.22283300004, ans_score: -122604.44419974768
+[BDeu(10000.0)] optimized_score: -156034.3607603117, ans_score: -158453.7036342634
+[hamming_distance]: 45
+compare duration: 1.185132371s
+cpdag visualize duration: 169.254µs
+
+Experiment for insurance completed successfully.
+learn duration: 84.139430919s
+visualize duration: 138.204µs
+evaluate duration: 359.487051ms
+[Aic] optimized_score: -134967.3431589586, ans_score: -131007.51850334775
+[Bic] optimized_score: -142785.2207027243, ans_score: -134965.1162640922
+[BDeu(10000.0)] optimized_score: -196171.37090014855, ans_score: -206156.80796686583
+[hamming_distance]: 61
+compare duration: 2.08215802s
+cpdag visualize duration: 170.423µs
+

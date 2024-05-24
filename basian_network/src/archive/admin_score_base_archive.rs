@@ -1,3 +1,4 @@
+
 use std::collections::HashSet;
 use std::fs;
 use std::fs::File;
@@ -231,6 +232,7 @@ impl CrossFrequencyTable {
             //     // self.aic();
             //     Err("aic is not implemented".to_string());
             // },
+            // "bdeu"
             _ => {
                 panic!("method must be 'aic' or 'bic'");
             }

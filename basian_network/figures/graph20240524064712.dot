@@ -1,0 +1,10 @@
+digraph G {
+    "either" -> "xray";
+    "tub" -> "asia";
+    "lung" -> "either";
+    "tub" -> "either";
+    "either" -> "dysp";
+    "bronc" -> "dysp";
+    "smoke" -> "bronc";
+    "lung" -> "smoke";
+}

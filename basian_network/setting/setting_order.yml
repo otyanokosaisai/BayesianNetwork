@@ -1,3 +1,4 @@
-method: "bic"
-data_path: "data/alarm.csv"
-compare_network_path: "data/alarm.dot"
+method: "bdeu"
+bdeu_ess: 1.0
+data_path: "data/hepar2.csv"
+compare_network_path: "data/hepar2.dot"

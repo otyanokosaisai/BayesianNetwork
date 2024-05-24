@@ -1,5 +1,6 @@
 mod score_base;
 mod order_base;
+mod exp;
 use anyhow::Result;
 use std::env;
 
@@ -31,6 +32,10 @@ fn main() -> Result<()> {
         println!("header: {:?}", data_container.ct.header);
         println!("network: {:?}", data_container.network.network_values);
         println!("compnet: {:?}", data_container.compare_network.network_values);
+    } else if args.len() > 1 && args[1] == "exp_score" {
+        exp::exp_score();
+    } else if args.len() > 1 && args[1] == "exp_order" {
+        exp::exp_order();
     } else {
         panic!("引数が不正です");
     }

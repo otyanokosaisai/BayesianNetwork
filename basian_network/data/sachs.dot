@@ -1,0 +1,30 @@
+digraph G {
+	Akt;
+	Erk;
+	Erk -> Akt;
+	Jnk;
+	Mek;
+	Mek -> Erk;
+	P38;
+	PIP2;
+	PIP3;
+	PIP3 -> PIP2;
+	PKA;
+	PKA -> Akt;
+	PKA -> Erk;
+	PKA -> Jnk;
+	PKA -> Mek;
+	PKA -> P38;
+	Raf;
+	PKA -> Raf;
+	PKC;
+	PKC -> Jnk;
+	PKC -> Mek;
+	PKC -> P38;
+	PKC -> PKA;
+	PKC -> Raf;
+	Plcg;
+	Plcg -> PIP2;
+	Plcg -> PIP3;
+	Raf -> Mek;
+}

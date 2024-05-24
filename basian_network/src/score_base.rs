@@ -23,9 +23,12 @@ use rayon::iter::ParallelIterator;
 use std::fmt::Write;
 use serde::{Deserialize, Serialize};
 use std::io::Read;
+use statrs::function::gamma::ln_gamma;
+
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Setting {
     pub method: String,
+    pub ess: f64,
     pub data_path: String,
     pub compare_network_path: String,
 }
@@ -42,26 +45,34 @@ fn read_settings_from_file(file_path: &str) -> Result<Setting, Box<dyn std::erro
 }
 
 fn read_dot_file<P: AsRef<Path>>(file_path: P, header: &HashMap<&str, u8>) -> io::Result<DiGraph<u8, ()>> {
+    // println!("[read_dot_file] header: {:?}", header);
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
     let mut graph = DiGraph::new();
+
     // ノードを追加する（インデックスはヘッダーマップに基づく）
-    for (_, &key) in header {
-        graph.add_node(key);
+    let mut node_indices: HashMap<&str, petgraph::prelude::NodeIndex> = HashMap::new();
+    let mut header_vec: Vec<(&str, u8)> = header.iter().map(|(k, v)| (*k, *v)).collect();
+    header_vec.sort_by(|a, b| a.1.cmp(&b.1));
+    for (key, index) in header_vec {
+        let node_index = graph.add_node(index);
+        // println!("Adding node: {:?} -> {:?}", key, node_index); // デバッグ用出力
+        node_indices.insert(key, node_index);
     }
 
     for line in reader.lines() {
         let line = line?;
+        // 行をトリムして余分なスペースやセミコロンを削除
+        let line = line.trim().trim_end_matches(';').trim();
         if let Some((source, target)) = line.split_once(" -> ") {
-            let source = source.trim_matches(['"', ';', ' '].as_ref());
-            let target = target.trim_matches(['"', ';', ' '].as_ref());
+            let source = source.trim_matches('"');
+            let target = target.trim_matches('"');
 
-            if let (Some(&source_index), Some(&target_index)) = (header.get(target), header.get(source)) {
-                graph.add_edge(
-                    petgraph::graph::NodeIndex::new(source_index as usize),
-                    petgraph::graph::NodeIndex::new(target_index as usize),
-                    (),
-                );
+            // println!("Processing edge: {} -> {}", source, target); // デバッグ用出力
+
+            if let (Some(&source_index), Some(&target_index)) = (node_indices.get(source), node_indices.get(target)) {
+                // println!("Adding edge: {:?} -> {:?}", source_index, target_index); // デバッグ用出力
+                graph.add_edge(target_index, source_index , ());
             }
         }
     }
@@ -69,6 +80,7 @@ fn read_dot_file<P: AsRef<Path>>(file_path: P, header: &HashMap<&str, u8>) -> io
 }
 
 fn build_network_from_graph(graph: DiGraph<u8, ()>) -> Network {
+    // println!("[load_graph] {:?}", graph);
     let mut network_values: HashMap<u8, HashSet<u8>> = HashMap::new();
 
     for edge in graph.edge_references() {
@@ -93,6 +105,83 @@ fn build_network_from_graph(graph: DiGraph<u8, ()>) -> Network {
 
 pub fn load_data(setting_path: &str) -> Result<DataContainer, Box<dyn Error>> {
     let setting = read_settings_from_file(setting_path)?;
+    let file = File::open(&setting.data_path)?;
+    let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
+    let headers: Vec<String> = rdr.headers()?.iter().map(|s| s.to_string()).collect();
+    let mut data = Vec::new();
+    let mut category_maps: Vec<HashMap<String, u8>> = vec![HashMap::new(); headers.len()];
+    for result in rdr.records() {
+        let record = result?;
+        let row: Vec<String> = record.iter().map(|s| s.to_string()).collect();
+        data.push(row.iter().enumerate().map(|(i, value)| {
+            let map = &mut category_maps[i];
+            let len = map.len();
+            *map.entry(value.clone()).or_insert_with(|| len as u8)
+        }).collect::<Vec<u8>>());
+    }
+
+    let data = Arc::new(data);
+    let freq_map = Arc::new(DashMap::new());
+    let num_cpus = num_cpus::get();
+    let chunk_size = (data.len() + num_cpus - 1) / num_cpus; // / 40000
+    let handles: Vec<_> = (0..num_cpus).map(|i| {
+        let data = Arc::clone(&data);
+        let freq_map = Arc::clone(&freq_map);
+        thread::spawn(move || {
+            let start = i * chunk_size;
+            let end = std::cmp::min((i + 1) * chunk_size, data.len());
+            for row in &data[start..end] {
+                freq_map.entry(row.clone()).and_modify(|e| *e += 1).or_insert(1);
+            }
+        })
+    }).collect();
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    let headers_index_map: HashMap<u8, String> = headers.iter().enumerate().map(|(i, h)| (i as u8, h.to_string())).collect();
+    let final_category_maps: HashMap<u8, HashMap<String, u8>> = category_maps.into_iter().enumerate()
+        .map(|(i, map)| (i as u8, map))
+        .collect();
+    let sample_size = freq_map.iter().map(|entry| *entry.value()).sum();
+    let headers_tmp: HashMap<&str, u8> = headers_index_map.iter().map(|(k, v)| (v.as_str(), *k)).collect();
+    let dot_graph = read_dot_file(&setting.compare_network_path, &headers_tmp)?;
+    let network = build_network_from_graph(dot_graph);
+    Ok(DataContainer {
+        setting: setting.clone(),
+        ct: CrossTable {
+            ct_values: freq_map.as_ref().clone(),
+            header: headers_index_map,
+            category_maps: final_category_maps,
+        },
+        cft: CrossFrequencyTable {
+            cft_values: DashMap::new(),
+        },
+        ls: LocalScores {
+            ls_values: DashMap::new(),
+        },
+        sample_size,
+        best_parents: BestParents {
+            bp_values: HashMap::new(),
+        },
+        sinks: Sinks {
+            sinks_values: HashMap::new(),
+        },
+        order: Order {
+            order_values: Vec::new(),
+        },
+        network: Network {
+            network_values: HashMap::new(),
+        },
+        scoring_method: ScoringMethod {
+            method: ScoringMethodName::None,
+        },
+        compare_network: network,
+    })
+}
+
+pub fn load_data_exp(setting: Setting) -> Result<DataContainer, Box<dyn Error>> {
     let file = File::open(&setting.data_path)?;
     let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
     let headers: Vec<String> = rdr.headers()?.iter().map(|s| s.to_string()).collect();
@@ -220,14 +309,16 @@ pub struct Network {
 pub enum ScoringMethodName {
     Bic,
     Aic,
+    BDeu(f64),
     None,
 }
 
 impl ScoringMethodName {
-    pub fn from_string(method: &str) -> ScoringMethodName {
+    pub fn from_string(method: &str, ess: f64) -> ScoringMethodName {
         match method {
             "bic" => ScoringMethodName::Bic,
             "aic" => ScoringMethodName::Aic,
+            "bdeu" => ScoringMethodName::BDeu(ess),
             _ => panic!("method must be 'bic' or 'aic'"),
         }
     }
@@ -280,7 +371,8 @@ impl ScoringMethod {
         match self.method {
             ScoringMethodName::Bic => l - k * (sample_size as f64).ln() / 2.0,
             ScoringMethodName::Aic => l - k,
-            ScoringMethodName::None => panic!("method must be 'bic' or 'aic'"),
+            ScoringMethodName::BDeu(ess) => ScoringMethod::calculate_bdeu_score(parent_data, parents, child, category_map, ess),
+            ScoringMethodName::None => panic!("method must be 'bic' or 'aic' or 'bdeu'"),
         }
     }
     fn calculate_log_likelihood(
@@ -293,6 +385,26 @@ impl ScoringMethod {
                 (count as f64) * ((count as f64 / total_count as f64).ln())
             }).sum::<f64>()
         }).sum()
+    }
+    fn calculate_bdeu_score(parent_data: &DashMap<Vec<u8>, HashMap<u8, u64>>, parents: &Vec<u8>, child: u8, category_map: &HashMap<u8, u8>, ess: f64) -> f64 {
+        let q_i = parents.iter().map(|&i| category_map[&i] as f64).product::<f64>();
+        let r_i = category_map[&child] as f64;
+        let alpha_ij = ess / q_i; // 親の状態に分配されるα
+        let alpha_ijk = ess / (q_i * r_i); // 親と子の状態に分配されるα
+
+        let mut score = 0.0;
+
+        for parent_state in parent_data.iter() {
+            let parent_state_counts = parent_state.value();
+            let n_ij = parent_state_counts.values().sum::<u64>() as f64; // 親の状態の総数
+
+            score += ln_gamma(alpha_ij) - ln_gamma(alpha_ij + n_ij);
+
+            for &count in parent_state_counts.values() {
+                score += ln_gamma(alpha_ijk + count as f64) - ln_gamma(alpha_ijk);
+            }
+        }
+        score
     }
 }
 
@@ -326,7 +438,7 @@ impl DataContainer {
         self.network.initialize((0..self.ct.header.len() as u8).collect(), &self.order, &self.best_parents);
     }
     pub fn analyze(&mut self) {
-        self.scoring_method.method = ScoringMethodName::from_string(self.setting.method.as_str());
+        self.scoring_method.method = ScoringMethodName::from_string(&self.setting.method, self.setting.ess);
         self.ct2cft();
         self._get_local_scores();
         self._get_best_parents();
@@ -353,6 +465,32 @@ impl DataContainer {
         let cpdag2 = self.compare_network.to_cpdag();
         let hamming_distance = cpdag1.hamming_distance(&cpdag2);
         println!("hamming_distance: {:?}", hamming_distance);
+    }
+    pub fn compare_all(&mut self) -> Vec<String> {
+        let mut output: Vec<String> = Vec::new();
+
+        self.scoring_method.method = ScoringMethodName::Aic;
+        let optimized_score = self.evaluate();
+        let category_nums: HashMap<u8, u8> = self.ct.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect();
+        let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
+        output.push(format!("[Aic] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
+
+        self.scoring_method.method = ScoringMethodName::Bic;
+        let optimized_score = self.evaluate();
+        let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
+        output.push(format!("[Bic] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
+
+        self.scoring_method.method = ScoringMethodName::BDeu(10000.0);
+        let optimized_score = self.evaluate();
+        let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
+        output.push(format!("[BDeu(10000.0)] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
+    
+        let cpdag1 = self.network.to_cpdag();
+        let cpdag2 = self.compare_network.to_cpdag();
+        let hamming_distance = cpdag1.hamming_distance(&cpdag2);
+        output.push(format!("[hamming_distance]: {:?}", hamming_distance));
+    
+        output
     }
     pub fn visualize(&self) {
         match self.network.render_graph_to_dot(&self.ct.header) {
@@ -675,32 +813,36 @@ impl CPDAG {
     }
     fn hamming_distance(&self, other: &CPDAG) -> u64 {
         let mut distance = 0;
-        let mut all_edges = self.directed_edges.union(&self.undirected_edges).cloned().collect::<HashSet<_>>();
-        all_edges = all_edges.union(&other.directed_edges).cloned().collect();
-        all_edges = all_edges.union(&other.undirected_edges).cloned().collect();
-        for edge in all_edges {
-            let self_has_directed = self.directed_edges.contains(&edge);
-            let other_has_directed = other.directed_edges.contains(&edge);
+        let all_edges: HashSet<Edge> = self.directed_edges.union(&self.undirected_edges).cloned().collect::<HashSet<Edge>>()
+            .union(&other.directed_edges).cloned().collect::<HashSet<Edge>>()
+            .union(&other.undirected_edges).cloned().collect::<HashSet<Edge>>();
+        
+        for edge in &all_edges {
+            let self_has_directed = self.directed_edges.contains(edge);
+            let other_has_directed = other.directed_edges.contains(edge);
             let reverse_edge = Edge { from: edge.to.clone(), to: edge.from.clone() };
-            let self_has_undirected = self.undirected_edges.contains(&edge) || self.undirected_edges.contains(&reverse_edge);
-            let other_has_undirected = other.undirected_edges.contains(&edge) || other.undirected_edges.contains(&reverse_edge);
+            let self_has_undirected = self.undirected_edges.contains(edge) || self.undirected_edges.contains(&reverse_edge);
+            let other_has_undirected = other.undirected_edges.contains(edge) || other.undirected_edges.contains(&reverse_edge);
+            
             if self_has_directed != other_has_directed || self_has_undirected != other_has_undirected {
                 distance += 1;
             }
         }
+
         distance
     }
 }
 
 pub fn create_cpdag(network: HashMap<u8, Vec<u8>>) -> CPDAG {
+    // println!("[create_cpdag] {:?}", network);
     let nodes: Vec<Node> = network.keys().map(|&id| Node { id }).collect();
     let edges: Vec<Edge> = network.iter().flat_map(|(to, froms)| {
         froms.iter().map(move |&from| Edge { from: Node { id: from }, to: Node { id: *to } })
     }).collect();
+    // println!("nodes: {:?}", nodes);
+    // println!("edges: {:?}", edges);
     _create_cpdag(nodes, edges)
 }
-
-
 
 fn _create_cpdag(nodes: Vec<Node>, edges: Vec<Edge>) -> CPDAG {
     let mut cpdag = CPDAG::new(nodes);
@@ -736,15 +878,19 @@ fn _create_cpdag(nodes: Vec<Node>, edges: Vec<Edge>) -> CPDAG {
     }
 
     // 残りのエッジの処理
-    for (_, in_edges) in &incoming_edges {
-        for &edge in in_edges {
-            if !cpdag.is_marked_as_v_structure(&edge) {
-                cpdag.add_undirected_edge(edge.clone());
-            } else {
+    for edge in &edges {
+        if cpdag.is_marked_as_v_structure(edge) {
+            cpdag.add_directed_edge(edge.clone());
+        } else {
+            let reverse_edge = Edge { from: edge.to.clone(), to: edge.from.clone() };
+            if cpdag.is_marked_as_v_structure(&reverse_edge) {
                 cpdag.add_directed_edge(edge.clone());
+            } else {
+                cpdag.add_undirected_edge(edge.clone());
             }
         }
-    }
+    }  
+    // println!("[CPDAG] {:?}", cpdag);
 
     cpdag
 }

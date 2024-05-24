@@ -1,3 +1,4 @@
-method: "bic"
-data_path: "data/asia.csv"
-compare_network_path: "data/asia.dot"
+method: "bdeu"
+ess: 1.0
+data_path: "data/sachs.csv"
+compare_network_path: "data/sachs.dot"
