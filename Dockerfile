@@ -5,7 +5,7 @@ FROM ubuntu:latest
 # curlとgitはRustのインストールとzpreztoのクローンに必要
 # build-essentialはC言語のコンパイルに必要なツールを含む
 # zshはzpreztoを使用するために必要
-RUN apt-get update && apt-get install -y curl git build-essential zsh libssl-dev pkg-config
+RUN apt-get update && apt-get install -y curl git build-essential zsh libssl-dev pkg-config graphviz
 
 # Rustのインストール
 # ここではRustの公式インストールスクリプトを使用
