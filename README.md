@@ -151,10 +151,6 @@ If there is a ground truth network available for a dataset, it should be stored 
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## Contributing
-
-Contributions are welcome! Please open an issue or submit a pull request on GitHub.
-
 ## Contact
 
-For any questions or issues, please contact [your-email@example.com].
+For any questions or issues, please contact [shooting3000k@gmail.com].
