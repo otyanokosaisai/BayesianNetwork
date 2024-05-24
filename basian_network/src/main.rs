@@ -1,6 +1,7 @@
 mod score_base;
 mod order_base;
 mod exp;
+mod est;
 use anyhow::Result;
 use std::env;
 
@@ -36,6 +37,10 @@ fn main() -> Result<()> {
         exp::exp_score();
     } else if args.len() > 1 && args[1] == "exp_order" {
         exp::exp_order();
+    } else if args.len() > 1 && args[1] == "est_score" {
+        est::est_score();
+    } else if args.len() > 1 && args[1] == "est_order" {
+        est::est_order();
     } else {
         panic!("引数が不正です");
     }

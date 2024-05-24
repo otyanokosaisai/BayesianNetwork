@@ -135,7 +135,7 @@ pub fn exp_score() {
     for data_name in exp_setting.data_names {
         let setting = score_base::Setting {
             method: exp_setting.method.clone(),
-            ess: exp_setting.bdeu_ess,
+            bdeu_ess: exp_setting.bdeu_ess,
             data_path: format!("{}/{}.csv", exp_setting.data_dir, data_name),
             compare_network_path: format!("{}/{}.dot", exp_setting.compare_network_dir, data_name),
         };

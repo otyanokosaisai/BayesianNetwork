@@ -214,7 +214,7 @@ pub fn load_data_exp(setting: Setting) -> Result<DataContainer, Box<dyn Error>> 
     let data = Arc::new(data);
     let freq_map = Arc::new(DashMap::new());
     let num_cpus = num_cpus::get();
-    let chunk_size = (data.len() + num_cpus - 1) / num_cpus/ 100; // / 40000
+    let chunk_size = (data.len() + num_cpus - 1) / num_cpus;
     let handles: Vec<_> = (0..num_cpus).map(|i| {
         let data = Arc::clone(&data);
         let freq_map = Arc::clone(&freq_map);
@@ -236,6 +236,45 @@ pub fn load_data_exp(setting: Setting) -> Result<DataContainer, Box<dyn Error>> 
         .map(|(i, map)| (i as u8, map))
         .collect();
     let sample_size = freq_map.iter().map(|entry| *entry.value()).sum();
+    // compare_network_pathが見つからない場合はcompare_networkを空にする
+    if !Path::new(&setting.compare_network_path).exists() {
+        let compare_network = Network {
+            network_values: HashMap::new(),
+            scc_network_values: HashMap::new(),
+            scc_network: HashMap::new(),
+            orders: Vec::new(),
+            bayesian_network: HashMap::new(),
+            cpdag: CPDAG::default(),
+        };
+        return Ok(DataContainer {
+            setting: setting.clone(),
+            ct: CrossTable {
+                ct_values: freq_map.as_ref().clone(),
+                header: headers_index_map,
+                category_maps: final_category_maps,
+            },
+            cft: CrossFrequencyTable {
+                cft_values: DashMap::new(),
+            },
+            ls: LocalScores {
+                ls_values: DashMap::new(),
+            },
+            sample_size,
+            scoring_method: ScoringMethod {
+                method: ScoringMethodName::from_string(&setting.method, setting.bdeu_ess),
+            },
+            network: Network {
+                network_values: HashMap::new(),
+                scc_network_values: HashMap::new(),
+                scc_network: HashMap::new(),
+                orders: Vec::new(),
+                bayesian_network: HashMap::new(),
+                cpdag: CPDAG::default(),
+            },
+            compare_network: compare_network,
+        });
+    }
+
     let headers_tmp: HashMap<&str, u8> = headers_index_map.iter().map(|(k, v)| (v.as_str(), *k)).collect();
     let compare_network = read_dot_file(&setting.compare_network_path, &headers_tmp)?;
     let compare_network = build_network_from_graph(compare_network);

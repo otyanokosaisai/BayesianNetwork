@@ -28,7 +28,7 @@ use statrs::function::gamma::ln_gamma;
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Setting {
     pub method: String,
-    pub ess: f64,
+    pub bdeu_ess: f64,
     pub data_path: String,
     pub compare_network_path: String,
 }
@@ -145,6 +145,43 @@ pub fn load_data(setting_path: &str) -> Result<DataContainer, Box<dyn Error>> {
         .map(|(i, map)| (i as u8, map))
         .collect();
     let sample_size = freq_map.iter().map(|entry| *entry.value()).sum();
+    
+    // compare_network_pathが見つからない場合はcompare_networkを空にする
+    if !Path::new(&setting.compare_network_path).exists() {
+        return Ok(DataContainer {
+            setting: setting.clone(),
+            ct: CrossTable {
+                ct_values: freq_map.as_ref().clone(),
+                header: headers_index_map,
+                category_maps: final_category_maps,
+            },
+            cft: CrossFrequencyTable {
+                cft_values: DashMap::new(),
+            },
+            ls: LocalScores {
+                ls_values: DashMap::new(),
+            },
+            sample_size,
+            best_parents: BestParents {
+                bp_values: HashMap::new(),
+            },
+            sinks: Sinks {
+                sinks_values: HashMap::new(),
+            },
+            order: Order {
+                order_values: Vec::new(),
+            },
+            network: Network {
+                network_values: HashMap::new(),
+            },
+            scoring_method: ScoringMethod {
+                method: ScoringMethodName::None,
+            },
+            compare_network: Network {
+                network_values: HashMap::new(),
+            },
+        });
+    }
     let headers_tmp: HashMap<&str, u8> = headers_index_map.iter().map(|(k, v)| (v.as_str(), *k)).collect();
     let dot_graph = read_dot_file(&setting.compare_network_path, &headers_tmp)?;
     let network = build_network_from_graph(dot_graph);
@@ -182,6 +219,84 @@ pub fn load_data(setting_path: &str) -> Result<DataContainer, Box<dyn Error>> {
 }
 
 pub fn load_data_exp(setting: Setting) -> Result<DataContainer, Box<dyn Error>> {
+    let file = File::open(&setting.data_path)?;
+    let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
+    let headers: Vec<String> = rdr.headers()?.iter().map(|s| s.to_string()).collect();
+    let mut data = Vec::new();
+    let mut category_maps: Vec<HashMap<String, u8>> = vec![HashMap::new(); headers.len()];
+    for result in rdr.records() {
+        let record = result?;
+        let row: Vec<String> = record.iter().map(|s| s.to_string()).collect();
+        data.push(row.iter().enumerate().map(|(i, value)| {
+            let map = &mut category_maps[i];
+            let len = map.len();
+            *map.entry(value.clone()).or_insert_with(|| len as u8)
+        }).collect::<Vec<u8>>());
+    }
+
+    let data = Arc::new(data);
+    let freq_map = Arc::new(DashMap::new());
+    let num_cpus = num_cpus::get();
+    let chunk_size = (data.len() + num_cpus - 1) / num_cpus; // / 40000
+    let handles: Vec<_> = (0..num_cpus).map(|i| {
+        let data = Arc::clone(&data);
+        let freq_map = Arc::clone(&freq_map);
+        thread::spawn(move || {
+            let start = i * chunk_size;
+            let end = std::cmp::min((i + 1) * chunk_size, data.len());
+            for row in &data[start..end] {
+                freq_map.entry(row.clone()).and_modify(|e| *e += 1).or_insert(1);
+            }
+        })
+    }).collect();
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    let headers_index_map: HashMap<u8, String> = headers.iter().enumerate().map(|(i, h)| (i as u8, h.to_string())).collect();
+    let final_category_maps: HashMap<u8, HashMap<String, u8>> = category_maps.into_iter().enumerate()
+        .map(|(i, map)| (i as u8, map))
+        .collect();
+    let sample_size = freq_map.iter().map(|entry| *entry.value()).sum();
+    let headers_tmp: HashMap<&str, u8> = headers_index_map.iter().map(|(k, v)| (v.as_str(), *k)).collect();
+    let dot_graph = read_dot_file(&setting.compare_network_path, &headers_tmp)?;
+    let network = build_network_from_graph(dot_graph);
+    Ok(DataContainer {
+        setting: setting.clone(),
+        ct: CrossTable {
+            ct_values: freq_map.as_ref().clone(),
+            header: headers_index_map,
+            category_maps: final_category_maps,
+        },
+        cft: CrossFrequencyTable {
+            cft_values: DashMap::new(),
+        },
+        ls: LocalScores {
+            ls_values: DashMap::new(),
+        },
+        sample_size,
+        best_parents: BestParents {
+            bp_values: HashMap::new(),
+        },
+        sinks: Sinks {
+            sinks_values: HashMap::new(),
+        },
+        order: Order {
+            order_values: Vec::new(),
+        },
+        network: Network {
+            network_values: HashMap::new(),
+        },
+        scoring_method: ScoringMethod {
+            method: ScoringMethodName::None,
+        },
+        compare_network: network,
+    })
+}
+
+
+pub fn load_data_est(setting: Setting) -> Result<DataContainer, Box<dyn Error>> {
     let file = File::open(&setting.data_path)?;
     let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
     let headers: Vec<String> = rdr.headers()?.iter().map(|s| s.to_string()).collect();
@@ -438,7 +553,7 @@ impl DataContainer {
         self.network.initialize((0..self.ct.header.len() as u8).collect(), &self.order, &self.best_parents);
     }
     pub fn analyze(&mut self) {
-        self.scoring_method.method = ScoringMethodName::from_string(&self.setting.method, self.setting.ess);
+        self.scoring_method.method = ScoringMethodName::from_string(&self.setting.method, self.setting.bdeu_ess);
         self.ct2cft();
         self._get_local_scores();
         self._get_best_parents();

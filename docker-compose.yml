@@ -10,7 +10,7 @@ services:
       - "8003:8080"
     volumes:
       - .:/workspace
-    command: zsh
+    command: tail /dev/null
     deploy:
       resources:
         limits:
