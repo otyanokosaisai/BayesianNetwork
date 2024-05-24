@@ -48,14 +48,10 @@ This project aims to estimate the structure of Bayesian Networks using two metho
 
     Example configuration file (`setting/setting_oreder.yml`):
     ```yaml
-    method: "bic" #(aic, bic, bdeu)
-    bdeu_ess: 10.0 #(for bdeu)
-    data_dir: "./data" #(data dir)
-    compare_network_dir: "./data" #(ans dot file dir)
-    data_names:
-      - "dataset1" #(dataset name ({dataset}.csv))
-      - "dataset2"
-    timeout_hours: 12 #(maximum_duration)
+    method: "bdeu"
+    bdeu_ess: 1.0
+    data_path: "data/asia.csv"
+    compare_network_path: "data/asia.dot"
     ```
 
     Example configuration file (`exp/order.yml`):
