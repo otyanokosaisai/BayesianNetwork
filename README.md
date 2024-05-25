@@ -66,10 +66,11 @@ This project aims to estimate the structure of Bayesian Networks using two metho
         timeout_hours: 12 #(maximum_duration)
         saving_dir: "results/exp/order"
     ```
+5. set data:
+- set data(csv) for data dir where you write for data_dir.
 
 
-
-5. Run the structure estimation: 
+6. Run the structure estimation: 
 - Run the OrderBase basic:
     ```sh
     cargo run order
