@@ -1,0 +1,4 @@
+method: "bdeu"
+bdeu_ess: 10000.0
+data_dir: "data/asia.csv"
+saving_dir: "results/est/order"

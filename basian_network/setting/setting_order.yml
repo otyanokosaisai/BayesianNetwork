@@ -1,4 +1,0 @@
-method: "bdeu"
-bdeu_ess: 1.0
-data_path: "data/asia.csv"
-compare_network_path: "data/asia.dot"

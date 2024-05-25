@@ -1,4 +1,3 @@
-
 # Bayesian Network Structure Estimation
 
 This project aims to estimate the structure of Bayesian Networks using two methods: ScoreBase and OrderBase.
@@ -39,31 +38,33 @@ This project aims to estimate the structure of Bayesian Networks using two metho
     ```
 
 4. Edit the configuration files:
-    - `setting/setting_oreder.yml` for one dataset
-    - `setting/setting_score.yml` for one dataset
-    - `exp/order.yml` for many datasets
-    - `exp/score.yml` for many datasets
-    - `est/setting_order.yml` for one dataset whose you have no answer
-    - `est/setting_score.yml` for one dataset whose you have no answer
+    - `setting/exm/oreder.yml` for one dataset examination
+    - `setting/exm/score.yml` for one dataset examination
+    - `setting/exp/order.yml` for many datasets experiment
+    - `setting/exp/score.yml` for many datasets experiment
+    - `setting/est/order.yml` for one dataset estimation whose you have no answer
+    - `setting/est/score.yml` for one dataset estimation whose you have no answer
 
-    Example configuration file (`setting/setting_oreder.yml`):
+    Example configuration file (`setting/exm/oreder.yml`):
     ```yaml
-    method: "bdeu"
-    bdeu_ess: 1.0
-    data_path: "data/asia.csv"
-    compare_network_path: "data/asia.dot"
+        method: "bdeu"
+        bdeu_ess: 1.0
+        data_path: "data/asia.csv"
+        compare_network_path: "data/asia.dot"
+        saving_dir: "results/exm/order"
     ```
 
     Example configuration file (`exp/order.yml`):
     ```yaml
-    method: "bdeu" #(aic, bic, bdeu)
-    bdeu_ess: 10.0 #(for bdeu)
-    data_dir: "./data" #(data dir)
-    compare_network_dir: "./data" #(ans dot file dir)
-    data_names:
-      - "dataset1" #(dataset name ({dataset}.csv))
-      - "dataset2"
-    timeout_hours: 12 #(maximum_duration)
+        method: "bdeu" #(aic, bic, bdeu)
+        bdeu_ess: 10.0 #(for bdeu)
+        data_dir: "./data" #(data dir)
+        compare_network_dir: "./data" #(ans dot file dir)
+        data_names:
+        - "dataset1" #(dataset name ({dataset}.csv))
+        - "dataset2"
+        timeout_hours: 12 #(maximum_duration)
+        saving_dir: "results/exp/order"
     ```
 
 
@@ -84,25 +85,63 @@ This project aims to estimate the structure of Bayesian Networks using two metho
     cargo run est_order
     ```
 
-## Project Structure
+## Directory Structure
+### Source Code (`src`)
 
-- `src/`
-  - `main.rs`: Entry point for the program.
-  - `order_base.rs`: Implementation of the OrderBase method.
-  - `score_base.rs`: Implementation of the ScoreBase method.
-  - `exp.rs`: Experiment management and execution logic.
+```
+/workspace/basian_network/tree src
+src
+|-- common
+|   |-- core
+|   |   |-- mod.rs
+|   |   |-- order_base.rs
+|   |   |-- score_base.rs
+|   |   `-- utils.rs
+|   |-- est.rs
+|   |-- exm.rs
+|   |-- exp.rs
+|   `-- mod.rs
+|-- lib.rs
+`-- main.rs
+```
 
-- `exp/`
-  - `order.yml`: Configuration file for the OrderBase experiment.
-  - `score.yml`: Configuration file for the ScoreBase experiment.
-  - `result_order_{timestamp}.txt`: Results of the OrderBase experiment.
-  - `result_score_{timestamp}.txt`: Results of the ScoreBase experiment.
+- `src/main.rs`: Entry point for the program.
+- `src/lib.rs`: Entry point for the common modules.
+- `src/common/`: Contains the core logic and utility functions.
+  - `src/common/core/mod.rs`: Entry point for the core module.
+  - `src/common/core/order_base.rs`: Implementation of the OrderBase method.
+  - `src/common/core/score_base.rs`: Implementation of the ScoreBase method.
+  - `src/common/core/utils.rs`: Utility functions.
+  - `src/common/est.rs`: Estimation logic.
+  - `src/common/exm.rs`: Experiment management logic.
+  - `src/common/exp.rs`: Experiment execution logic.
+  - `src/common/mod.rs`: Entry point for the common module.
 
-- `data/`
-  - `dataset1.csv`: Data of dataset1
-  - `dataset1.dot`: Ground truth network for dataset1.
-  - `dataset2.csv`: Data of dataset2
-  - `dataset2.dot`: Ground truth network for dataset2.
+### Configuration Files (`setting`)
+
+```
+/workspace/basian_network/tree setting
+setting
+|-- asia.dot
+|-- est
+|   |-- order.yml
+|   `-- score.yml
+|-- exm
+|   |-- order.yml
+|   `-- score.yml
+`-- exp
+    |-- order.yml
+    `-- score.yml
+```
+
+- `setting/asia.dot`: Ground truth network for the Asia dataset.
+- `setting/est/order.yml`: Configuration file for the OrderBase method in the estimation experiment.
+- `setting/est/score.yml`: Configuration file for the ScoreBase method in the estimation experiment.
+- `setting/exm/order.yml`: Configuration file for the OrderBase method in the execution experiment.
+- `setting/exm/score.yml`: Configuration file for the ScoreBase method in the execution experiment.
+- `setting/exp/order.yml`: Configuration file for the OrderBase method in the experiment.
+- `setting/exp/score.yml`: Configuration file for the ScoreBase method in the experiment.
+
 
 ## Purpose
 
@@ -120,28 +159,30 @@ Configuration files are used to set the parameters for each experiment. The foll
 - `compare_network_dir`: Directory where the comparison network files are located.
 - `data_names`: A list of data set names to be used in the experiments.
 - `timeout_hours`: The timeout duration for each experiment in hours.
+- `saving_dir`: Directory where the estimated BNs are saved
 
 ## Logging
 
-The results of each experiment are logged in a timestamped text file located in the `exp/` directory. Each step of the experiment, including the duration of each phase (learn, visualize, evaluate, compare), is recorded in this file.
+The results of each experiment are logged in a timestamped text file located in the `results/exp/*` directory. Each step of the experiment, including the duration of each phase (learn, visualize, evaluate, compare), is recorded in this file.
 
 ## Example Log Entry
 
 ```text
 Experiment for asia completed successfully.
-analyze duration: 1.756882901s
-visualize duration: 178.487µs
-evaluate duration: 2.984494ms
-[Aic] optimized_score: -2235334.53211664, ans_score: -2235334.53211664
-[Bic] optimized_score: -2235440.8717116616, ans_score: -2235440.8717116616
-[BDeu(10000.0)] optimized_score: -2297897.6304985075, ans_score: -2297897.6304985075
-[hamming_distance]: 0
-compare duration: 48.985137ms
+learn duration: 19.414118ms
+visualize duration: 158.434µs
+evaluate duration: 1.554104ms
+[Aic] optimized_score: -2248296.1850932767, ans_score: -2235334.5321166404
+[Bic] optimized_score: -2248420.2479541353, ans_score: -2235440.871711662
+[BDeu(10000.0)] optimized_score: -2312015.4954329343, ans_score: -2297897.630498507
+[hamming_distance]: 6
+compare duration: 7.166725ms
+cpdag visualize duration: 94.747µs
 ```
 
 ## Ground Truth Networks
 
-If there is a ground truth network available for a dataset, it should be stored as a `.dot` file in the `data` directory with the corresponding dataset name (e.g., `dataset1.dot`). The estimated network will also be saved in the `figure` directory, following the same naming convention.
+If there is a ground truth network available for a dataset, it should be stored as a `.dot` file in the `data` directory with the corresponding dataset name (e.g., `dataset1.dot`). The estimated network will also be saved in the `results` directory, following the same naming convention.
 
 ## License
 
