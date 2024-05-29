@@ -503,10 +503,10 @@ impl DataContainer {
         let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
         output.push(format!("[Bic] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
 
-        self.scoring_method.method = ScoringMethodName::BDeu(10000.0);
+        self.scoring_method.method = ScoringMethodName::BDeu(self.setting.bdeu_ess);
         let optimized_score = self.evaluate();
         let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
-        output.push(format!("[BDeu(10000.0)] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
+        output.push(format!("[BDeu({:?})] optimized_score: {:?}, ans_score: {:?}", self.setting.bdeu_ess, optimized_score, score));
     
         let cpdag1 = self.network.to_cpdag();
         let cpdag2 = self.compare_network.to_cpdag();

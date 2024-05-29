@@ -1,0 +1,27 @@
+digraph G {
+    "Akt" -> "Jnk";
+    "PKA" -> "Jnk";
+    "Akt" -> "Erk";
+    "Jnk" -> "Erk";
+    "PKA" -> "Erk";
+    "Erk" -> "Raf";
+    "Jnk" -> "Raf";
+    "PKA" -> "Raf";
+    "Erk" -> "Mek";
+    "Jnk" -> "Mek";
+    "PKA" -> "Mek";
+    "Raf" -> "Mek";
+    "PIP3" -> "PIP2";
+    "Plcg" -> "PIP2";
+    "Plcg" -> "PIP3";
+    "Jnk" -> "PKC";
+    "Mek" -> "PKC";
+    "P38" -> "PKC";
+    "PKA" -> "PKC";
+    "Raf" -> "PKC";
+    "PKA" -> "Akt";
+    "Jnk" -> "P38";
+    "Mek" -> "P38";
+    "PKA" -> "P38";
+    "Raf" -> "P38";
+}

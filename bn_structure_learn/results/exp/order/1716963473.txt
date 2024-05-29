@@ -1,0 +1,22 @@
+Experiment for asia completed successfully.
+learn duration: 28.875427ms
+visualize duration: 1.941332ms
+evaluate duration: 1.393997ms
+[Aic] optimized_score: -2235458.675858671, ans_score: -2235334.5321166404
+[Bic] optimized_score: -2236587.0571169565, ans_score: -2235440.871711662
+[BDeu(10000.0)] optimized_score: -2280377.3352105655, ans_score: -2297897.630498507
+[hamming_distance]: 27
+compare duration: 6.590157ms
+cpdag visualize duration: 80.406µs
+
+Experiment for sachs completed successfully.
+learn duration: 6.090010805s
+visualize duration: 141.424µs
+evaluate duration: 139.56363ms
+[Aic] optimized_score: -7176407.935951154, ans_score: -7171482.332850206
+[Bic] optimized_score: -7215269.1501763, ans_score: -7172533.913289865
+[BDeu(10000.0)] optimized_score: -7230687.612339361, ans_score: -7261100.768312872
+[hamming_distance]: 27
+compare duration: 790.502945ms
+cpdag visualize duration: 149.262µs
+

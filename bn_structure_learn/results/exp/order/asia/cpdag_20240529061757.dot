@@ -1,0 +1,29 @@
+digraph G {
+    "lung" -> "asia" [dir = none];
+    "lung" -> "bronc" [dir = none];
+    "lung" -> "smoke" [dir = none];
+    "dysp" -> "smoke" [dir = none];
+    "lung" -> "tub" [dir = none];
+    "dysp" -> "tub" [dir = none];
+    "dysp" -> "xray" [dir = none];
+    "lung" -> "either" [dir = none];
+    "dysp" -> "either" [dir = none];
+    "bronc" -> "asia" [dir = none];
+    "xray" -> "asia" [dir = none];
+    "bronc" -> "tub" [dir = none];
+    "either" -> "xray" [dir = none];
+    "dysp" -> "asia" [dir = none];
+    "asia" -> "tub" [dir = none];
+    "bronc" -> "xray" [dir = none];
+    "either" -> "asia" [dir = none];
+    "either" -> "smoke" [dir = none];
+    "either" -> "tub" [dir = none];
+    "lung" -> "xray" [dir = none];
+    "xray" -> "tub" [dir = none];
+    "bronc" -> "smoke" [dir = none];
+    "lung" -> "dysp" [dir = none];
+    "xray" -> "smoke" [dir = none];
+    "dysp" -> "bronc" [dir = none];
+    "asia" -> "smoke" [dir = none];
+    "either" -> "bronc" [dir = none];
+}

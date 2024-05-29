@@ -1,0 +1,23 @@
+digraph G {
+    "Jnk" -> "PKC";
+    "PKA" -> "PKC";
+    "Raf" -> "PKC";
+    "Mek" -> "PKA" [dir = none];
+    "Jnk" -> "PKA" [dir = none];
+    "Raf" -> "Erk" [dir = none];
+    "Erk" -> "P38" [dir = none];
+    "Erk" -> "Jnk" [dir = none];
+    "Mek" -> "Jnk" [dir = none];
+    "Jnk" -> "P38" [dir = none];
+    "Mek" -> "P38" [dir = none];
+    "PIP2" -> "Plcg" [dir = none];
+    "Erk" -> "Akt" [dir = none];
+    "Erk" -> "PKA" [dir = none];
+    "Mek" -> "Erk" [dir = none];
+    "P38" -> "PKA" [dir = none];
+    "Mek" -> "Akt" [dir = none];
+    "PIP2" -> "PIP3" [dir = none];
+    "Plcg" -> "PIP3" [dir = none];
+    "Mek" -> "PKC" [dir = none];
+    "Mek" -> "Raf" [dir = none];
+}

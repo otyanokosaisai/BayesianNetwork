@@ -1,0 +1,34 @@
+digraph G {
+    "LungFlow" -> "ChestXray";
+    "DuctFlow" -> "HypDistrib";
+    "CardiacMixing" -> "HypDistrib";
+    "CardiacMixing" -> "HypoxiaInO2";
+    "RUQO2" -> "HypoxiaInO2";
+    "XrayReport" -> "ChestXray";
+    "LungParench" -> "XrayReport";
+    "LungFlow" -> "XrayReport";
+    "LowerBodyO2" -> "HypoxiaInO2";
+    "LungParench" -> "ChestXray";
+    "LVH" -> "LVHreport" [dir = none];
+    "LowerBodyO2" -> "RUQO2" [dir = none];
+    "LungParench" -> "Grunting" [dir = none];
+    "Sick" -> "GruntingReport" [dir = none];
+    "Disease" -> "LungFlow" [dir = none];
+    "Disease" -> "LVH" [dir = none];
+    "Sick" -> "Grunting" [dir = none];
+    "Sick" -> "LungParench" [dir = none];
+    "Sick" -> "Age" [dir = none];
+    "LungParench" -> "CO2" [dir = none];
+    "LungParench" -> "Disease" [dir = none];
+    "LungParench" -> "GruntingReport" [dir = none];
+    "Disease" -> "CardiacMixing" [dir = none];
+    "GruntingReport" -> "Grunting" [dir = none];
+    "Disease" -> "LowerBodyO2" [dir = none];
+    "Disease" -> "BirthAsphyxia" [dir = none];
+    "Disease" -> "Age" [dir = none];
+    "DuctFlow" -> "Sick" [dir = none];
+    "Sick" -> "Disease" [dir = none];
+    "DuctFlow" -> "Disease" [dir = none];
+    "CO2" -> "CO2Report" [dir = none];
+    "DuctFlow" -> "LungParench" [dir = none];
+}

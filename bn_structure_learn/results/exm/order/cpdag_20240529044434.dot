@@ -1,0 +1,30 @@
+digraph G {
+    "Grunting" -> "LungParench";
+    "HypoxiaInO2" -> "RUQO2";
+    "HypoxiaInO2" -> "CardiacMixing";
+    "Disease" -> "HypoxiaInO2";
+    "Grunting" -> "GruntingReport";
+    "ChestXray" -> "Grunting";
+    "LungParench" -> "CO2Report";
+    "LungParench" -> "CO2";
+    "LungFlow" -> "LungParench";
+    "Sick" -> "Grunting";
+    "LowerBodyO2" -> "HypoxiaInO2";
+    "ChestXray" -> "XrayReport" [dir = none];
+    "CO2Report" -> "CO2" [dir = none];
+    "ChestXray" -> "LungParench" [dir = none];
+    "Disease" -> "Sick" [dir = none];
+    "LVH" -> "LVHreport" [dir = none];
+    "Disease" -> "BirthAsphyxia" [dir = none];
+    "Disease" -> "DuctFlow" [dir = none];
+    "Sick" -> "Age" [dir = none];
+    "Disease" -> "HypDistrib" [dir = none];
+    "Disease" -> "ChestXray" [dir = none];
+    "Disease" -> "LVH" [dir = none];
+    "Disease" -> "CardiacMixing" [dir = none];
+    "Disease" -> "Age" [dir = none];
+    "HypDistrib" -> "DuctFlow" [dir = none];
+    "LungFlow" -> "Disease" [dir = none];
+    "HypDistrib" -> "LowerBodyO2" [dir = none];
+    "LungFlow" -> "ChestXray" [dir = none];
+}

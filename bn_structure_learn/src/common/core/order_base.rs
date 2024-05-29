@@ -30,10 +30,7 @@ fn build_network_from_graph(graph: DiGraph<u8, ()>) -> Network {
         let source = edge.source().index() as u8;
         let target = edge.target().index() as u8;
         let empty_node = Vec::new();
-        // network_values
-        //     .entry(source)
-        //     .or_insert_with(empty_node.clone())
-        //     .insert(target);
+        
         network_values
             .entry(source)
             .or_insert(empty_node.clone())
@@ -301,10 +298,10 @@ impl DataContainer {
         let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
         output.push(format!("[Bic] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
 
-        self.scoring_method.method = ScoringMethodName::BDeu(10000.0);
+        self.scoring_method.method = ScoringMethodName::BDeu(self.setting.bdeu_ess);
         let optimized_score = self.evaluate();
         let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
-        output.push(format!("[BDeu(10000.0)] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
+        output.push(format!("[BDeu({:?})] optimized_score: {:?}, ans_score: {:?}", self.setting.bdeu_ess, optimized_score, score));
     
         let cpdag1 = self.network.to_cpdag();
         let cpdag2 = self.compare_network.to_cpdag();
@@ -476,6 +473,13 @@ impl ScoringMethod {
                 score += ln_gamma(alpha_ijk + count as f64) - ln_gamma(alpha_ijk);
             }
         }
+
+        if parent_data.len() == 0 {
+            println!("parent_data is empty");
+            score += ln_gamma(alpha_ij) - ln_gamma(alpha_ij + 0.0);
+            score += ln_gamma(alpha_ijk) - ln_gamma(alpha_ijk);
+        }
+
         score
     }
 }
