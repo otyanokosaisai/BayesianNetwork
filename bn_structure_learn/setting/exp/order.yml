@@ -21,6 +21,6 @@ data_names:
   - "hepar2"       # Nodes: 70, Arcs: 123, Parameters: 1453
   - "hailfinder"   # Nodes: 56, Arcs: 66, Parameters: 2656
   - "water"        # Nodes: 32, Arcs: 66, Parameters: 10083
-timeout_hours: 96
+timeout_hours: 72
 timeout_down: False
 saving_dir: "results/exp/order"
