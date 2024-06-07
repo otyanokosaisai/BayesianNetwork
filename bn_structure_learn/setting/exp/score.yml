@@ -1,5 +1,7 @@
 method: "bdeu"
-bdeu_ess: 1.0
+bdeu_ess: [
+  1.0
+]
 data_dir: "data"
 compare_network_dir: "data"
 data_names: [
@@ -7,13 +9,14 @@ data_names: [
   "sachs",
   "child",
   "insurance",
-  # "water",
+  "water",
   "alarm",
-  "hailfinder",
-  "hepar2",
-  "win95pts",
-  "pathfinder",
-  "andes",
+  # "hailfinder",
+  # "hepar2",
+  # "win95pts",
+  # "pathfinder",
+  # "andes",
 ]
-timeout_hours: 24
+timeout_hours: 96
+timeout_down: False
 saving_dir: "results/exp/score"

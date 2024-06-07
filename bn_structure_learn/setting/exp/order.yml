@@ -1,19 +1,24 @@
 method: "bdeu"
-bdeu_ess: 1.0
+bdeu_ess:
+  - 1.0
+  - 10.0
+  - 100.0
+  - 1000.0
+  - 10000.0
 data_dir: "data"
 compare_network_dir: "data"
-data_names: [
-  "asia",
-  "sachs",
-  "child",
-  "insurance",
-  # "water",
-  "alarm",
-  "hailfinder",
-  "hepar2",
-  "win95pts",
-  "pathfinder",
-  "andes",
-]
-timeout_hours: 24
+data_names:
+  - "asia"
+  - "sachs"
+  - "child"
+  - "insurance"
+  - "water"
+  - "alarm"
+  - "hailfinder"
+  - "hepar2"
+  - "win95pts"
+  - "pathfinder"
+  - "andes"
+timeout_hours: 96
+timeout_down: False
 saving_dir: "results/exp/order"
