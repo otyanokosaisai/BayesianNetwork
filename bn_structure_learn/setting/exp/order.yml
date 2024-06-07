@@ -8,17 +8,19 @@ bdeu_ess:
 data_dir: "data"
 compare_network_dir: "data"
 data_names:
-  - "asia"
-  - "sachs"
-  - "child"
-  - "insurance"
-  - "water"
-  - "alarm"
-  - "hailfinder"
-  - "hepar2"
-  - "win95pts"
-  - "pathfinder"
-  - "andes"
+  - "cancer"       # Nodes: 5, Arcs: 4, Parameters: 10
+  - "earthquake"   # Nodes: 5, Arcs: 4, Parameters: 10
+  - "asia"         # Nodes: 8, Arcs: 8, Parameters: 18
+  - "survey"       # Nodes: 6, Arcs: 6, Parameters: 21
+  - "sachs"        # Nodes: 11, Arcs: 17, Parameters: 178
+  - "child"        # Nodes: 20, Arcs: 25, Parameters: 230
+  - "alarm"        # Nodes: 37, Arcs: 46, Parameters: 509
+  - "win95pts"     # Nodes: 76, Arcs: 112, Parameters: 574
+  - "insurance"    # Nodes: 27, Arcs: 52, Parameters: 1008
+  - "andes"        # Nodes: 223, Arcs: 338, Parameters: 1157
+  - "hepar2"       # Nodes: 70, Arcs: 123, Parameters: 1453
+  - "hailfinder"   # Nodes: 56, Arcs: 66, Parameters: 2656
+  - "water"        # Nodes: 32, Arcs: 66, Parameters: 10083
 timeout_hours: 96
 timeout_down: False
 saving_dir: "results/exp/order"
