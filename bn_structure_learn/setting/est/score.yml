@@ -1,4 +1,5 @@
 method: "bdeu"
 bdeu_ess: 1.0
+valid_rate: 0.2
 data_dir: "data/asia.csv"
 saving_dir: "results/est/score"

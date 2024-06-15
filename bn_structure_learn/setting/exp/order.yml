@@ -9,7 +9,7 @@ bdeu_ess:
   - 100.0
   - 1000.0
   - 10000.0
-valid_rate: 0.1
+valid_rate: 0.2
 data_dir: "data"
 compare_network_dir: "data"
 data_names:

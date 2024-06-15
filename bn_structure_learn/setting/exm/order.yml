@@ -1,5 +1,6 @@
 method: "bdeu"
 bdeu_ess: 1.0
+valid_rate: 0.2
 data_path: "data/asia.csv"
 compare_network_path: "data/asia.dot"
 saving_dir: "results/exm/order"

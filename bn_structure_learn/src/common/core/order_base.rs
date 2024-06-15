@@ -386,7 +386,7 @@ impl ScoringMethod {
         }
 
         if parent_data.len() == 0 {
-            println!("parent_data is empty");
+            // println!("parent_data is empty");
             score += ln_gamma(alpha_ij) - ln_gamma(alpha_ij + 0.0);
             score += ln_gamma(alpha_ijk) - ln_gamma(alpha_ijk);
         }

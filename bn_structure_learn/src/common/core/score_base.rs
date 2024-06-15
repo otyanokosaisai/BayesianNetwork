@@ -477,7 +477,6 @@ impl Network {
     }
 
     pub fn evaluate(&self, cft: &CrossFrequencyTable, total_samples: usize, scoring_method: &ScoringMethod, category_map: &HashMap<u8, u8>) -> f64 {
-        println!("network: {:?}", self.network_values);
         let graph = &self.network_values;
         let cft = &cft.cft_values;
         let mut total_bic = 0.0;
@@ -488,7 +487,7 @@ impl Network {
                     parent
                 } else {
                     parent - 1
-                    
+
                 }
             ).collect::<Vec<u8>>();
             parents.sort();
@@ -508,9 +507,9 @@ impl Network {
                 }).or_insert(value_counts.clone());
             }
             let bic = scoring_method.calculate_for_parent_set(&cft_sub, total_samples, &parents, *node, category_map) as f64;
-            if parents.len() > 0 {
-                println!("node: {:?}, parents: {:?}, bic: {:?}", node, parents, bic);
-            }
+            // if parents.len() > 0 {
+            //     println!("node: {:?}, parents: {:?}, bic: {:?}", node, parents, bic);
+            // }
             total_bic += bic;
         }
         total_bic
