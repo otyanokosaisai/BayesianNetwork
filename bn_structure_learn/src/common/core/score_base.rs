@@ -488,6 +488,7 @@ impl Network {
                     parent
                 } else {
                     parent - 1
+                    
                 }
             ).collect::<Vec<u8>>();
             parents.sort();
