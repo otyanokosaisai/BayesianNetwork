@@ -30,10 +30,7 @@ fn build_network_from_graph(graph: DiGraph<u8, ()>) -> Network {
         let source = edge.source().index() as u8;
         let target = edge.target().index() as u8;
         let empty_node = Vec::new();
-        // network_values
-        //     .entry(source)
-        //     .or_insert_with(empty_node.clone())
-        //     .insert(target);
+        
         network_values
             .entry(source)
             .or_insert(empty_node.clone())
@@ -49,92 +46,15 @@ fn build_network_from_graph(graph: DiGraph<u8, ()>) -> Network {
 
     Network { 
         network_values: network_values.clone(),
-        scc_network_values: HashMap::new(),
-        scc_network: HashMap::new(),
-        orders: Vec::new(),
-        bayesian_network: network_values,
-        cpdag: CPDAG::default(),
     }
 }
 
 pub fn load_data(setting_path: &str) -> Result<DataContainer, Box<dyn Error>> {
     let setting = read_settings_from_file(setting_path)?;
-    let file = File::open(&setting.data_path)?;
-    let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
-    let headers: Vec<String> = rdr.headers()?.iter().map(|s| s.to_string()).collect();
-    let mut data = Vec::new();
-    let mut category_maps: Vec<HashMap<String, u8>> = vec![HashMap::new(); headers.len()];
-    for result in rdr.records() {
-        let record = result?;
-        let row: Vec<String> = record.iter().map(|s| s.to_string()).collect();
-        data.push(row.iter().enumerate().map(|(i, value)| {
-            let map = &mut category_maps[i];
-            let len = map.len();
-            *map.entry(value.clone()).or_insert_with(|| len as u8)
-        }).collect::<Vec<u8>>());
-    }
-
-    let data = Arc::new(data);
-    let freq_map = Arc::new(DashMap::new());
-    let num_cpus = num_cpus::get();
-    let chunk_size = (data.len() + num_cpus - 1) / num_cpus/ 100; // / 40000
-    let handles: Vec<_> = (0..num_cpus).map(|i| {
-        let data = Arc::clone(&data);
-        let freq_map = Arc::clone(&freq_map);
-        thread::spawn(move || {
-            let start = i * chunk_size;
-            let end = std::cmp::min((i + 1) * chunk_size, data.len());
-            for row in &data[start..end] {
-                freq_map.entry(row.clone()).and_modify(|e| *e += 1).or_insert(1);
-            }
-        })
-    }).collect();
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    let headers_index_map: HashMap<u8, String> = headers.iter().enumerate().map(|(i, h)| (i as u8, h.clone())).collect();
-    let final_category_maps: HashMap<u8, HashMap<String, u8>> = category_maps.into_iter().enumerate()
-        .map(|(i, map)| (i as u8, map))
-        .collect();
-    let sample_size = freq_map.iter().map(|entry| *entry.value()).sum();
-    let headers_tmp: HashMap<&str, u8> = headers_index_map.iter().map(|(k, v)| (v.as_str(), *k)).collect();
-    let compare_network = read_dot_file(&setting.compare_network_path, &headers_tmp)?;
-    let compare_network = build_network_from_graph(compare_network);
-    // panic!("{:?} \n {:?}", headers_tmp, compare_network);
-    let method = ScoringMethodName::from_string(&setting.method, setting.bdeu_ess);
-    Ok(DataContainer {
-        setting: setting,
-        ct: CrossTable {
-            ct_values: freq_map.as_ref().clone(),
-            header: headers_index_map,
-            category_maps: final_category_maps,
-        },
-        cft: CrossFrequencyTable {
-            cft_values: DashMap::new(),
-        },
-        ls: LocalScores {
-            ls_values: DashMap::new(),
-        },
-        sample_size,
-        scoring_method: ScoringMethod {
-            method: method,
-        },
-        network: Network {
-            network_values: HashMap::new(),
-            scc_network_values: HashMap::new(),
-            scc_network: HashMap::new(),
-            orders: Vec::new(),
-            bayesian_network: HashMap::new(),
-            cpdag: CPDAG::default(),
-        },
-        compare_network: compare_network,
-    })
+    load_data_from_setting(setting)
 }
 
-pub fn load_data_exp(setting: Setting) -> Result<DataContainer, Box<dyn Error>> {
-    // let setting = read_settings_from_file(setting_path)?;
+pub fn load_data_from_setting(setting: Setting) -> Result<DataContainer, Box<dyn Error>> {    
     let file = File::open(&setting.data_path)?;
     let mut rdr = ReaderBuilder::new().has_headers(true).from_reader(file);
     let headers: Vec<String> = rdr.headers()?.iter().map(|s| s.to_string()).collect();
@@ -150,183 +70,167 @@ pub fn load_data_exp(setting: Setting) -> Result<DataContainer, Box<dyn Error>> 
         }).collect::<Vec<u8>>());
     }
 
-    let data = Arc::new(data);
-    let freq_map = Arc::new(DashMap::new());
+    let train_size = (data.len() as f64 * (1.0 - setting.valid_rate)).round() as usize;
+    let (train_data, valid_data) = data.split_at(train_size);
+
+    let train_data = Arc::new(train_data.to_vec());
+    let valid_data = Arc::new(valid_data.to_vec());
+
+    let train_freq_map = Arc::new(DashMap::new());
+    let valid_freq_map = Arc::new(DashMap::new());
+
     let num_cpus = num_cpus::get();
-    let chunk_size = (data.len() + num_cpus - 1) / num_cpus;
-    let handles: Vec<_> = (0..num_cpus).map(|i| {
-        let data = Arc::clone(&data);
-        let freq_map = Arc::clone(&freq_map);
+    let train_chunk_size = (train_data.len() + num_cpus - 1) / num_cpus;
+    let valid_chunk_size = (valid_data.len() + num_cpus - 1) / num_cpus;
+
+    let train_handles: Vec<_> = (0..num_cpus).map(|i| {
+        let train_data = Arc::clone(&train_data);
+        let train_freq_map = Arc::clone(&train_freq_map);
         thread::spawn(move || {
-            let start = i * chunk_size;
-            let end = std::cmp::min((i + 1) * chunk_size, data.len());
-            for row in &data[start..end] {
-                freq_map.entry(row.clone()).and_modify(|e| *e += 1).or_insert(1);
+            let start = i * train_chunk_size;
+            let end = std::cmp::min((i + 1) * train_chunk_size, train_data.len());
+            for row in &train_data[start..end] {
+                train_freq_map.entry(row.clone()).and_modify(|e| *e += 1).or_insert(1);
             }
         })
     }).collect();
 
-    for handle in handles {
+    let valid_handles: Vec<_> = (0..num_cpus).map(|i| {
+        let valid_data = Arc::clone(&valid_data);
+        let valid_freq_map = Arc::clone(&valid_freq_map);
+        thread::spawn(move || {
+            let start = i * valid_chunk_size;
+            let end = std::cmp::min((i + 1) * valid_chunk_size, valid_data.len());
+            for row in &valid_data[start..end] {
+                valid_freq_map.entry(row.clone()).and_modify(|e| *e += 1).or_insert(1);
+            }
+        })
+    }).collect();
+
+    for handle in train_handles {
         handle.join().unwrap();
     }
 
-    let headers_index_map: HashMap<u8, String> = headers.iter().enumerate().map(|(i, h)| (i as u8, h.clone())).collect();
+    for handle in valid_handles {
+        handle.join().unwrap();
+    }
+
+    let headers_index_map: HashMap<u8, String> = headers.iter().enumerate().map(|(i, h)| (i as u8, h.to_string())).collect();
     let final_category_maps: HashMap<u8, HashMap<String, u8>> = category_maps.into_iter().enumerate()
         .map(|(i, map)| (i as u8, map))
         .collect();
-    let sample_size = freq_map.iter().map(|entry| *entry.value()).sum();
-    // compare_network_pathが見つからない場合はcompare_networkを空にする
-    if !Path::new(&setting.compare_network_path).exists() {
-        let compare_network = Network {
-            network_values: HashMap::new(),
-            scc_network_values: HashMap::new(),
-            scc_network: HashMap::new(),
-            orders: Vec::new(),
-            bayesian_network: HashMap::new(),
-            cpdag: CPDAG::default(),
-        };
-        return Ok(DataContainer {
-            setting: setting.clone(),
-            ct: CrossTable {
-                ct_values: freq_map.as_ref().clone(),
-                header: headers_index_map,
-                category_maps: final_category_maps,
-            },
-            cft: CrossFrequencyTable {
-                cft_values: DashMap::new(),
-            },
-            ls: LocalScores {
-                ls_values: DashMap::new(),
-            },
-            sample_size,
-            scoring_method: ScoringMethod {
-                method: ScoringMethodName::from_string(&setting.method, setting.bdeu_ess),
-            },
-            network: Network {
-                network_values: HashMap::new(),
-                scc_network_values: HashMap::new(),
-                scc_network: HashMap::new(),
-                orders: Vec::new(),
-                bayesian_network: HashMap::new(),
-                cpdag: CPDAG::default(),
-            },
-            compare_network: compare_network,
-        });
-    }
+    let train_sample_size = train_freq_map.iter().map(|entry| *entry.value()).sum();
+    let valid_sample_size = valid_freq_map.iter().map(|entry| *entry.value()).sum();
 
-    let headers_tmp: HashMap<&str, u8> = headers_index_map.iter().map(|(k, v)| (v.as_str(), *k)).collect();
-    let compare_network = read_dot_file(&setting.compare_network_path, &headers_tmp)?;
-    let compare_network = build_network_from_graph(compare_network);
-    // panic!("{:?} \n {:?}", headers_tmp, compare_network);
-    let method = ScoringMethodName::from_string(&setting.method, setting.bdeu_ess);
+    let compare_network = if Path::new(&setting.compare_network_path).exists() {
+        let headers_tmp: HashMap<&str, u8> = headers_index_map.iter().map(|(k, v)| (v.as_str(), *k)).collect();
+        let dot_graph = read_dot_file(&setting.compare_network_path, &headers_tmp)?;
+        build_network_from_graph(dot_graph)
+    } else {
+        Network {
+            network_values: HashMap::new(),
+        }
+    };
+
+    let cross_table = CrossTable {
+        ct_values: train_freq_map.as_ref().clone(),
+    };
+    let cross_table_valid = CrossTable {
+        ct_values: valid_freq_map.as_ref().clone(),
+    };
+
+    let cft = cross_table.ct2cft();
+    let cft_valid = cross_table_valid.ct2cft();
+
     Ok(DataContainer {
-        setting: setting,
-        ct: CrossTable {
-            ct_values: freq_map.as_ref().clone(),
-            header: headers_index_map,
-            category_maps: final_category_maps,
-        },
-        cft: CrossFrequencyTable {
-            cft_values: DashMap::new(),
-        },
-        ls: LocalScores {
-            ls_values: DashMap::new(),
-        },
-        sample_size,
-        scoring_method: ScoringMethod {
-            method: method,
-        },
+        setting: setting.clone(),
+        cft,
+        cft_valid,
+        category_maps: final_category_maps,
+        header: headers_index_map,
+        sample_size: train_sample_size,
+        sample_size_valid: valid_sample_size,
         network: Network {
             network_values: HashMap::new(),
-            scc_network_values: HashMap::new(),
-            scc_network: HashMap::new(),
-            orders: Vec::new(),
-            bayesian_network: HashMap::new(),
-            cpdag: CPDAG::default(),
         },
-        compare_network: compare_network,
+        scoring_method: ScoringMethod {
+            method: ScoringMethodName::from_string(&setting.method, setting.bdeu_ess),
+        },
+        compare_network,
     })
 }
 
 #[derive(Debug)]
 pub struct DataContainer {
     pub setting: Setting,
-    pub ct: CrossTable,
     pub cft: CrossFrequencyTable,
-    pub ls: LocalScores,
+    pub cft_valid: CrossFrequencyTable,
+    pub category_maps: HashMap<u8, HashMap<String, u8>>,
+    pub header: HashMap<u8, String>,
     pub sample_size: u64,
-    pub scoring_method: ScoringMethod,
+    pub sample_size_valid: u64,
     pub network: Network,
+    pub scoring_method: ScoringMethod,
     pub compare_network: Network,
 }
 
 impl DataContainer {
     pub fn learn(&mut self) {
-        self.cft.initialize(&self.ct);
-        self.ls.initialize(&self.cft, self.sample_size, &self.scoring_method, &self.ct.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect());
-        self.network = self.ls.construct_initial_bayesian_network();
-        self.network.construct_scc_network();
-        self.network.construct_order();
-        self.network.order_based_search(&self.ls);
-        // println!("{:?}", self.network.bayesian_network);
+        let ls = self.cft.get_local_scores(self.sample_size, &self.scoring_method, &self.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect());
+        let mut tmp_network = ls.construct_initial_bayesian_network();
+        tmp_network.construct_scc_network();
+        tmp_network.construct_order();
+        tmp_network.order_based_search(&ls);
+        self.network = Network {
+            network_values: tmp_network.bayesian_network.clone(),
+        };
     }
     pub fn evaluate(&self) -> f64 {
-        let category_nums: HashMap<u8, u8> = self.ct.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect();
-        let score = self.network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
+        let category_nums: HashMap<u8, u8> = self.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect();
+        let score = self.network.evaluate(&self.cft_valid, self.sample_size as usize, &self.scoring_method, &category_nums);
         score
     }
     pub fn compare(&mut self) {
         let optimized_score = self.evaluate();
-        let category_nums: HashMap<u8, u8> = self.ct.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect();
-        let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
+        let category_nums: HashMap<u8, u8> = self.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect();
+        let score = self.compare_network.evaluate(&self.cft_valid, self.sample_size_valid as usize, &self.scoring_method, &category_nums);
         println!("[{:?}] optimized_score: {:?} (ans: {:?})", self.scoring_method.method, optimized_score, score);
         let cpdag1 = self.network.to_cpdag();
         let cpdag2 = self.compare_network.to_cpdag();
         let hamming_distance = cpdag1.hamming_distance(&cpdag2);
         println!("[Hamming distance(CPDAG)]: {:?}", hamming_distance);
-        self.network.cpdag = cpdag1;
-        self.compare_network.cpdag = cpdag2;
     }
     pub fn compare_all(&mut self) -> Vec<String> {
         let mut output: Vec<String> = Vec::new();
 
         self.scoring_method.method = ScoringMethodName::Aic;
         let optimized_score = self.evaluate();
-        let category_nums: HashMap<u8, u8> = self.ct.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect();
-        let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
+        let category_nums: HashMap<u8, u8> = self.category_maps.iter().map(|(i, map)| (*i, map.len() as u8)).collect();
+        let score = self.compare_network.evaluate(&self.cft_valid, self.sample_size_valid as usize, &self.scoring_method, &category_nums);
         output.push(format!("[Aic] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
 
         self.scoring_method.method = ScoringMethodName::Bic;
         let optimized_score = self.evaluate();
-        let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
+        let score = self.compare_network.evaluate(&self.cft_valid, self.sample_size_valid as usize, &self.scoring_method, &category_nums);
         output.push(format!("[Bic] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
 
-        self.scoring_method.method = ScoringMethodName::BDeu(10000.0);
+        self.scoring_method.method = ScoringMethodName::BDeu(self.setting.bdeu_ess);
         let optimized_score = self.evaluate();
-        let score = self.compare_network.evaluate(&self.cft, self.sample_size as usize, &self.scoring_method, &category_nums);
-        output.push(format!("[BDeu(10000.0)] optimized_score: {:?}, ans_score: {:?}", optimized_score, score));
+        let score = self.compare_network.evaluate(&self.cft_valid, self.sample_size_valid as usize, &self.scoring_method, &category_nums);
+        output.push(format!("[BDeu({:?})] optimized_score: {:?}, ans_score: {:?}", self.setting.bdeu_ess, optimized_score, score));
     
         let cpdag1 = self.network.to_cpdag();
         let cpdag2 = self.compare_network.to_cpdag();
         let hamming_distance = cpdag1.hamming_distance(&cpdag2);
         output.push(format!("[hamming_distance]: {:?}", hamming_distance));
     
-        self.network.cpdag = cpdag1;
-        self.compare_network.cpdag = cpdag2;
+        // self.network.cpdag = cpdag1;
+        // self.compare_network.cpdag = cpdag2;
     
         output
     }
     pub fn visualize(&self) {
-        match self.network.render_graph_to_dot(&self.ct.header, &self.setting.saving_dir) {
-            Ok(_) => {
-            },
-            Err(e) => {
-                println!("Error: {:?}", e);
-            }
-        }
-    }
-    pub fn cpdag_visualize(&self) {
-        match self.network.cpdag.render_graph_to_dot(&self.ct.header, &self.setting.saving_dir) {
+        match self.network.render_graph_to_dot(&self.header, &self.setting.saving_dir) {
             Ok(_) => {
             },
             Err(e) => {
@@ -339,8 +243,6 @@ impl DataContainer {
 #[derive(Debug)]
 pub struct CrossTable {
     pub ct_values: DashMap<Vec<u8>, u64>,
-    pub header: HashMap<u8, String>,
-    pub category_maps: HashMap<u8, HashMap<String, u8>>,
 }
 
 #[derive(Debug)]
@@ -352,7 +254,7 @@ pub struct LocalScores {
     pub ls_values: DashMap<u8, DashMap<Vec<u8>, f64>>,
 }
 #[derive(Debug)]
-pub struct Network {
+pub struct TmpNetwork {
     pub network_values: HashMap<u8, Vec<u8>>,
     pub scc_network_values: HashMap<u8, Vec<u8>>, // scc_group, nodes
     pub scc_network : HashMap<u8, Vec<u8>>, // scc_group, to_scc_group
@@ -360,6 +262,12 @@ pub struct Network {
     pub bayesian_network:HashMap<u8, Vec<u8>>,
     pub cpdag: CPDAG,
 }
+
+#[derive(Debug)]
+pub struct Network {
+    pub network_values: HashMap<u8, Vec<u8>>,
+}
+
 #[derive(Debug)]
 pub enum ScoringMethodName {
     Bic,
@@ -476,13 +384,20 @@ impl ScoringMethod {
                 score += ln_gamma(alpha_ijk + count as f64) - ln_gamma(alpha_ijk);
             }
         }
+
+        if parent_data.len() == 0 {
+            println!("parent_data is empty");
+            score += ln_gamma(alpha_ij) - ln_gamma(alpha_ij + 0.0);
+            score += ln_gamma(alpha_ijk) - ln_gamma(alpha_ijk);
+        }
+
         score
     }
 }
 
 impl CrossTable {
     pub fn ct2cft(&self) -> CrossFrequencyTable {
-        let num_valiables = self.header.len() as u8;
+        let num_valiables = self.ct_values.iter().next().unwrap().key().len() as u8;
         let all_valiables: Vec<u8> = (0..num_valiables).collect();
         let cft: DashMap<u8, DashMap<Vec<u8>, HashMap<u8, u64>>> = DashMap::new(); // child index, parent values, child value, count
         all_valiables.par_iter().for_each(|&child_valiable_index| {
@@ -513,9 +428,6 @@ impl CrossTable {
 }
 
 impl CrossFrequencyTable {
-    pub fn initialize(&mut self, ct: &CrossTable) {
-        self.cft_values = ct.ct2cft().cft_values;
-    }
     pub fn get_local_scores(&self, sample_size: u64, scoring_method: &ScoringMethod, category_map: &HashMap<u8, u8>) -> LocalScores {
         LocalScores {
             ls_values: self.bic(sample_size, scoring_method, category_map),
@@ -541,20 +453,14 @@ impl CrossFrequencyTable {
                     }
                 });
             });
-            // local_scores_for_child.remove(&vec![]);// 空は取り除かれるべきなのかは要チェック
             local_scores.insert(child, local_scores_for_child);
         });
         local_scores
     }
 }
 
-
-
 impl LocalScores {
-    pub fn initialize(&mut self, cft: &CrossFrequencyTable,  sample_size: u64, scoring_method: &ScoringMethod, category_map: &HashMap<u8, u8>) {
-        self.ls_values = cft.get_local_scores(sample_size, scoring_method, category_map).ls_values;
-    }
-    pub fn construct_initial_bayesian_network(&self) -> Network {
+    pub fn construct_initial_bayesian_network(&self) -> TmpNetwork {
         let mut best_parents: HashMap<u8, Vec<u8>> = HashMap::new();
         for entry in self.ls_values.iter() {
             // スコアが最大のものを取り出す
@@ -569,7 +475,7 @@ impl LocalScores {
             best_parents.insert(*entry.key(), best_parent);
         }
         // println!("{:?}", best_parents);
-        Network {
+        TmpNetwork {
             network_values: best_parents,
             scc_network_values: HashMap::new(),
             scc_network: HashMap::new(),
@@ -580,7 +486,8 @@ impl LocalScores {
     }
 }
 
-impl Network {
+
+impl TmpNetwork {
     pub fn construct_scc_network(&mut self) {
         let mut index = 0;
         let mut stack = Vec::new();
@@ -675,7 +582,7 @@ impl Network {
     // 各SCCのベイジアンネットワークを計算
     pub fn construct_order(&mut self) {
         let mut orders: Vec<u8> = vec![];
-        for oscc in Network::topological_sort(&self.scc_network).unwrap() {
+        for oscc in TmpNetwork::topological_sort(&self.scc_network).unwrap() {
             let scc = self.scc_network_values.get(&oscc).unwrap();
             if scc.len() > 1 {
                 // random order
@@ -764,7 +671,9 @@ impl Network {
             invalid_nodes.insert(*node);
         }
     }
+}
 
+impl Network {
     pub fn evaluate(
         &self,
         cft: &CrossFrequencyTable,
@@ -772,10 +681,11 @@ impl Network {
         scoreing_method: &ScoringMethod,
         category_map: &HashMap<u8, u8>,
     ) -> f64 {
-        let graph = &self.bayesian_network;
+        let graph = &self.network_values;
         let cft = &cft.cft_values;
         let mut total_bic = 0.0;
         for (node, parents) in graph.iter() {
+
             let cft_sub: DashMap<Vec<u8>, HashMap<u8, u64>> = DashMap::new();
             let mut parents  = parents.iter().map(|&parent| 
                 if parent < *node {
@@ -811,7 +721,7 @@ impl Network {
         headers_index_map: &HashMap<u8, String>,
         save_dir: &str,
     ) -> Result<(), std::io::Error> {
-        let graph = &self.bayesian_network;
+        let graph = &self.network_values;
         let mut dot_output = String::from("digraph G {\n");
         let unknown = "?".to_string();
         for (source, targets) in graph {
@@ -829,7 +739,7 @@ impl Network {
         Ok(())
     }
     pub fn to_cpdag(&self) -> CPDAG {
-        let network: HashMap<u8, Vec<u8>> = self.bayesian_network.iter().map(|(k, v)| (*k, v.iter().map(|&v| v).collect())).collect();
+        let network: HashMap<u8, Vec<u8>> = self.network_values.iter().map(|(k, v)| (*k, v.iter().map(|&v| v).collect())).collect();
         create_cpdag(network)
     }
 }
@@ -896,6 +806,7 @@ impl CPDAG {
         }
         distance
     }
+    #[allow(dead_code)]
     pub fn render_graph_to_dot(
         &self,
         headers_index_map: &HashMap<u8, String>,

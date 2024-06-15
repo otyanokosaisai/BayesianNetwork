@@ -1,11 +1,15 @@
 use std::{collections::HashMap, fs::File, io::{self, BufRead, BufReader, Read}, path::Path};
 
+// use dashmap::DashMap;
 use petgraph::graph::DiGraph;
+// use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use serde::{Deserialize, Serialize};
+// use statrs::function::gamma::ln_gamma;
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Setting {
     pub method: String,
+    pub valid_rate: f64,
     pub bdeu_ess: f64,
     pub data_path: String,
     pub compare_network_path: String,
@@ -39,7 +43,6 @@ pub fn read_dot_file<P: AsRef<Path>>(file_path: P, header: &HashMap<&str, u8>) -
         // println!("Adding node: {:?} -> {:?}", key, node_index); // デバッグ用出力
         node_indices.insert(key, node_index);
     }
-
     for line in reader.lines() {
         let line = line?;
         // 行をトリムして余分なスペースやセミコロンを削除
@@ -47,14 +50,11 @@ pub fn read_dot_file<P: AsRef<Path>>(file_path: P, header: &HashMap<&str, u8>) -
         if let Some((source, target)) = line.split_once(" -> ") {
             let source = source.trim_matches('"');
             let target = target.trim_matches('"');
-
-            // println!("Processing edge: {} -> {}", source, target); // デバッグ用出力
-
             if let (Some(&source_index), Some(&target_index)) = (node_indices.get(source), node_indices.get(target)) {
-                // println!("Adding edge: {:?} -> {:?}", source_index, target_index); // デバッグ用出力
                 graph.add_edge(target_index, source_index , ());
             }
         }
     }
     Ok(graph)
 }
+

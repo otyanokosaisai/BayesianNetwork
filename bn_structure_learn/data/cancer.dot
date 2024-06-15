@@ -1,12 +1,11 @@
-strict digraph unknown {
-	graph [name=unknown];
-	Pollution	[weight=None];
-	Cancer	[weight=None];
-	Pollution -> Cancer	[weight=None];
-	Smoker	[weight=None];
-	Smoker -> Cancer	[weight=None];
-	Xray	[weight=None];
-	Cancer -> Xray	[weight=None];
-	Dyspnoea	[weight=None];
-	Cancer -> Dyspnoea	[weight=None];
+digraph G {
+	Pollution;
+	Cancer;
+	Pollution -> Cancer;
+	Smoker;
+	Smoker -> Cancer;
+	Xray;
+	Cancer -> Xray;
+	Dyspnoea;
+	Cancer -> Dyspnoea;
 }

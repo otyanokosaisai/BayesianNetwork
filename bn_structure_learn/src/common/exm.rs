@@ -10,7 +10,7 @@ pub fn exm_order() {
     data_container.visualize();
     data_container.evaluate();
     data_container.compare();
-    data_container.cpdag_visualize();
+    // data_container.cpdag_visualize();
 }
 
 pub fn exm_score() {

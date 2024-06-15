@@ -10,6 +10,7 @@ use super::core::utils::Setting;
 struct EstSetting {
     pub method: String,
     pub bdeu_ess: f64,
+    pub valid_rate: f64,
     pub data_dir: String,
     pub saving_dir: String,
 }
@@ -27,11 +28,12 @@ pub fn est_order() {
     let setting = Setting {
         method: setting.method,
         bdeu_ess: setting.bdeu_ess,
+        valid_rate: setting.valid_rate,
         data_path: setting.data_dir,
         compare_network_path: "./setting/asia.dot".to_string(), // dummy
         saving_dir: setting.saving_dir,
     };
-    let mut data_container = match order_base::load_data_exp(setting) {
+    let mut data_container = match order_base::load_data_from_setting(setting) {
         Ok(data_container) => data_container,
         Err(e) => panic!("{:?}", e),
     };
@@ -46,11 +48,12 @@ pub fn est_score() {
     let setting = Setting {
         method: setting.method,
         bdeu_ess: setting.bdeu_ess,
+        valid_rate: setting.valid_rate,
         data_path: setting.data_dir,
         compare_network_path: "./setting/asia.dot".to_string(), //dummy
         saving_dir: setting.saving_dir,
     };
-    let mut data_container = match score_base::load_data_exp(setting) {
+    let mut data_container = match score_base::load_data_from_setting(setting) {
         Ok(data_container) => data_container,
         Err(e) => panic!("{:?}", e),
     };
