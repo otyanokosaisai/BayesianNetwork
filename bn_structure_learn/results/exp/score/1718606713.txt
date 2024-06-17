@@ -1,0 +1,40 @@
+Experiment for cancer with ess 1 completed successfully.
+analyze duration: 5.364291ms
+visualize duration: 114.408µs
+evaluate duration: 357.595µs
+[Aic] valid_optimized_score: -4220.79859553894, ans_score: -4220.79859553894
+[Bic] valid_optimized_score: -4248.80310783665, ans_score: -4248.80310783665
+[BDeu(1.0)] valid_optimized_score: -4242.690617730662, ans_score: -4242.690617730663
+[hamming_distance]: 0
+compare duration: 1.666694ms
+
+Experiment for earthquake with ess 1 completed successfully.
+analyze duration: 3.89403ms
+visualize duration: 81.337µs
+evaluate duration: 339.092µs
+[Aic] valid_optimized_score: -886.3441352911967, ans_score: -886.3441352911966
+[Bic] valid_optimized_score: -914.3486475889072, ans_score: -914.348647588907
+[BDeu(1.0)] valid_optimized_score: -905.7695725411919, ans_score: -905.7695725411927
+[hamming_distance]: 0
+compare duration: 1.550774ms
+
+Experiment for asia with ess 1 completed successfully.
+analyze duration: 476.667055ms
+visualize duration: 107.521µs
+evaluate duration: 884.184µs
+[Aic] valid_optimized_score: -4566.171139076653, ans_score: -4566.171139076653
+[Bic] valid_optimized_score: -4616.5792612125315, ans_score: -4616.5792612125315
+[BDeu(1.0)] valid_optimized_score: -4603.880654747912, ans_score: -4603.8806547479135
+[hamming_distance]: 0
+compare duration: 4.23969ms
+
+Experiment for survey with ess 1 completed successfully.
+analyze duration: 11.392887ms
+visualize duration: 92.483µs
+evaluate duration: 762.301µs
+[Aic] valid_optimized_score: -7816.117544397146, ans_score: -7817.713715841317
+[Bic] valid_optimized_score: -7863.725215303253, ans_score: -7876.52319166651
+[BDeu(1.0)] valid_optimized_score: -7869.77060304089, ans_score: -7880.843084653106
+[hamming_distance]: 11
+compare duration: 4.078015ms
+

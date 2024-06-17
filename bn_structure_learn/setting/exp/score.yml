@@ -1,15 +1,15 @@
-method: "bdeu"
+method: "bic"
 bdeu_ess: 
-  - 1.0
+  - 100.0
 valid_rate: 0.2
 data_dir: "data"
 compare_network_dir: "data"
 data_names:
-  # - "cancer"       # Nodes: 5, Arcs: 4, Parameters: 10
-  # - "earthquake"   # Nodes: 5, Arcs: 4, Parameters: 10
-  # - "asia"         # Nodes: 8, Arcs: 8, Parameters: 18
+  - "cancer"       # Nodes: 5, Arcs: 4, Parameters: 10
+  - "earthquake"   # Nodes: 5, Arcs: 4, Parameters: 10
+  - "asia"         # Nodes: 8, Arcs: 8, Parameters: 18
   - "survey"       # Nodes: 6, Arcs: 6, Parameters: 21
-  # - "sachs"        # Nodes: 11, Arcs: 17, Parameters: 178
+  - "sachs"        # Nodes: 11, Arcs: 17, Parameters: 178
   - "child"        # Nodes: 20, Arcs: 25, Parameters: 230
   - "alarm"        # Nodes: 37, Arcs: 46, Parameters: 509
   - "win95pts"     # Nodes: 76, Arcs: 112, Parameters: 574
