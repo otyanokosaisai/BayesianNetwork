@@ -3,3 +3,5 @@
 *.png
 /handout
 /trash
+id_rsa
+id_rsa.pub

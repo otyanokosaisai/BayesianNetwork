@@ -1,7 +1,0 @@
-digraph G {
-    "Cancer" -> "Dyspnoea";
-    "Pollution" -> "Cancer";
-    "Smoker" -> "Cancer";
-    "Pollution" -> "Xray";
-    "Cancer" -> "Xray";
-}

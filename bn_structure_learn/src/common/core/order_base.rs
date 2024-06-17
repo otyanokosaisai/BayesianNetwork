@@ -861,7 +861,7 @@ fn _create_cpdag(nodes: Vec<Node>, edges: Vec<Edge>) -> CPDAG {
         outgoing_edges.entry(&edge.from).or_default().push(edge);
     }
     // V構造の特定
-    for (&node, in_edges) in &incoming_edges {
+    for (_, in_edges) in &incoming_edges {
         if in_edges.len() > 1 {
             for i in 0..in_edges.len() {
                 for j in (i + 1)..in_edges.len() {
@@ -876,12 +876,12 @@ fn _create_cpdag(nodes: Vec<Node>, edges: Vec<Edge>) -> CPDAG {
                         cpdag.mark_as_v_structure(edge1.clone());
                         cpdag.mark_as_v_structure(edge2.clone());
 
-                        // 子ノードから出るエッジもすべて有向エッジとしてマーク
-                        if let Some(child_edges) = outgoing_edges.get(&node) {
-                            for &child_edge in child_edges {
-                                cpdag.mark_as_v_structure(child_edge.clone());
-                            }
-                        }
+                        // // 子ノードから出るエッジもすべて有向エッジとしてマーク
+                        // if let Some(child_edges) = outgoing_edges.get(&node) {
+                        //     for &child_edge in child_edges {
+                        //         cpdag.mark_as_v_structure(child_edge.clone());
+                        //     }
+                        // }
                     }
                 }
             }
