@@ -253,6 +253,7 @@ pub struct CrossFrequencyTable {
 pub struct LocalScores {
     pub ls_values: DashMap<u8, DashMap<Vec<u8>, f64>>,
 }
+#[allow(dead_code)]
 #[derive(Debug)]
 pub struct TmpNetwork {
     pub network_values: HashMap<u8, Vec<u8>>,
