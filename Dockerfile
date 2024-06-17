@@ -1,7 +1,7 @@
 # Ubuntuの最新版をベースイメージとして使用
 FROM ubuntu:latest
 
-RUN apt-get update && apt-get install -y curl git build-essential zsh libssl-dev pkg-config graphviz
+RUN apt-get update && apt-get install -y curl git build-essential zsh libssl-dev pkg-config graphviz openssh-client
 
 # Rustのインストール
 # ここではRustの公式インストールスクリプトを使用

@@ -57,13 +57,16 @@ This project aims to estimate the structure of Bayesian Networks using two metho
     Example configuration file (`exp/order.yml`):
     ```yaml
         method: "bdeu" #(aic, bic, bdeu)
-        bdeu_ess: 10.0 #(for bdeu)
+        bdeu_ess: 
+        - 1.0
+        - 10.0 #(for bdeu)
         data_dir: "./data" #(data dir)
         compare_network_dir: "./data" #(ans dot file dir)
         data_names:
         - "dataset1" #(dataset name ({dataset}.csv))
         - "dataset2"
         timeout_hours: 12 #(maximum_duration)
+        timeout_valid: false
         saving_dir: "results/exp/order"
     ```
 5. set data:
@@ -73,17 +76,17 @@ This project aims to estimate the structure of Bayesian Networks using two metho
 6. Run the structure estimation: 
 - Run the OrderBase basic:
     ```sh
-    cargo run order
+    cargo run exm order
     ```
 
 - Run the ScoreBase experiment:
     ```sh
-    cargo run exp_score
+    cargo run exp score
     ```
 
 - If there is no ground truth network:
     ```sh
-    cargo run est_order
+    cargo run est order
     ```
 
 ## Directory Structure
@@ -135,7 +138,7 @@ setting
     `-- score.yml
 ```
 
-- `setting/asia.dot`: Ground truth network for the Asia dataset.
+- `setting/asia.dot`: dummy network dot file.
 - `setting/est/order.yml`: Configuration file for the OrderBase method in the estimation experiment.
 - `setting/est/score.yml`: Configuration file for the ScoreBase method in the estimation experiment.
 - `setting/exm/order.yml`: Configuration file for the OrderBase method in the execution experiment.
@@ -160,6 +163,7 @@ Configuration files are used to set the parameters for each experiment. The foll
 - `compare_network_dir`: Directory where the comparison network files are located.
 - `data_names`: A list of data set names to be used in the experiments.
 - `timeout_hours`: The timeout duration for each experiment in hours.
+- `timeout_valid`: Timeout valid or invalid
 - `saving_dir`: Directory where the estimated BNs are saved
 
 ## Logging
