@@ -20,4 +20,5 @@ data_names:
   - "water"        # Nodes: 32, Arcs: 66, Parameters: 10083
 timeout_hours: 72
 timeout_valid: False
+trial_num: 8
 saving_dir: "results/exp/score"

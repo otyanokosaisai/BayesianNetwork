@@ -1,0 +1,6 @@
+digraph G {
+    "Alarm" -> "MaryCalls";
+    "Alarm" -> "JohnCalls";
+    "Burglary" -> "Alarm";
+    "Earthquake" -> "Alarm";
+}
